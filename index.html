@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillVerse — Crypto Invoice Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #0a0a1a;
+  --surface: #12122a;
+  --surface2: #1a1a3a;
+  --border: #2a2a5a;
+  --text: #e8e8ff;
+  --text2: #8888bb;
+  --accent: #6c5ce7;
+  --accent2: #a29bfe;
+  --green: #00d68f;
+  --orange: #ff9f43;
+  --red: #ee5a24;
+  --verse: #8b5cf6;
+  --verse2: #6366f1;
+  --radius: 16px;
+  --shadow: 0 8px 32px rgba(108,92,231,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(108,92,231,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 50%);
+}
+
+/* ═══════════ NAV ═══════════ */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  background: rgba(10,10,26,0.8);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--verse), var(--verse2));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: white;
+}
+.logo span { color: var(--text2); font-weight: 400; }
+.nav-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.nav-btn {
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.nav-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.nav-btn.primary {
+  background: linear-gradient(135deg, var(--verse), var(--verse2));
+  border: none;
+  color: white;
+}
+
+/* ═══════════ HERO ═══════════ */
+.hero {
+  text-align: center;
+  padding: 60px 20px 40px;
+  position: relative;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--accent2);
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.hero h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--verse) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  font-size: 18px;
+  color: var(--text2);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ═══════════ CONTAINER ═══════════ */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+/* ═══════════ PANEL ═══════════ */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--verse), var(--verse2), var(--accent));
+  opacity: 0.6;
+}
+.panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text2);
+}
+.panel-title .icon { font-size: 18px; }
+
+/* ═══════════ FORM ═══════════ */
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--verse);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-group select { cursor: pointer; }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ═══════════ CURRENCY SELECTOR ═══════════ */
+.currency-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.currency-opt {
+  padding: 10px;
+  text-align: center;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 13px;
+}
+.currency-opt:hover { border-color: var(--verse); }
+.currency-opt.active {
+  border-color: var(--verse);
+  background: rgba(139,92,246,0.15);
+  box-shadow: 0 0 20px rgba(139,92,246,0.1);
+}
+.currency-opt .sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text2);
+  display: block;
+  margin-top: 2px;
+}
+
+/* ═══════════ BUTTON ═══════════ */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--verse), var(--verse2));
+  color: white;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139,92,246,0.3);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+.btn-success {
+  background: linear-gradient(135deg, #00d68f, #00b894);
+  color: white;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ═══════════ INVOICE PREVIEW ═══════════ */
+.invoice-preview {
+  background: white;
+  color: #1a1a2e;
+  border-radius: 12px;
+  padding: 32px;
+  min-height: 400px;
+  position: relative;
+}
+.invoice-preview .verse-watermark {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  opacity: 0.04;
+  font-size: 60px;
+  font-weight: 900;
+  pointer-events: none;
+  letter-spacing: -3px;
+}
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #eef0f6;
+}
+.invoice-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.invoice-brand-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+}
+.invoice-brand-text {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+.invoice-brand-text span { color: #8888bb; font-weight: 400; }
+.invoice-number-box {
+  text-align: right;
+}
+.invoice-number-box .label {
+  font-size: 11px;
+  color: #8888bb;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.invoice-number-box .number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+.invoice-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+.status-pending { background: #fff3e0; color: #e65100; }
+.status-paid { background: #e8f5e9; color: #2e7d32; }
+.status-expired { background: #fce4ec; color: #c62828; }
+
+.invoice-body { margin-bottom: 24px; }
+.invoice-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+}
+.invoice-row.bill-to { flex-direction: column; gap: 4px; }
+.invoice-row.bill-to .client-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.invoice-row.bill-to .client-detail {
+  color: #666;
+  font-size: 13px;
+}
+.invoice-amount-box {
+  background: linear-gradient(135deg, #f8f6ff, #eef0ff);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin: 20px 0;
+}
+.invoice-amount-box .amount-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.invoice-amount-box .amount-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: #1a1a2e;
+  margin: 4px 0;
+}
+.invoice-amount-box .amount-usd {
+  font-size: 14px;
+  color: #888;
+}
+.invoice-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f6;
+}
+
+/* ═══════════ QR SECTION ═══════════ */
+.qr-section {
+  text-align: center;
+  padding: 20px 0;
+}
+.qr-section.hidden { display: none; }
+.qr-wrapper {
+  display: inline-block;
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  margin-bottom: 16px;
+}
+.qr-wrapper canvas { display: block; margin: 0 auto; }
+.qr-address {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text2);
+  word-break: break-all;
+  background: var(--surface2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  display: inline-block;
+  max-width: 300px;
+}
+.qr-instruction {
+  font-size: 14px;
+  color: var(--text2);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+.qr-instruction strong { color: var(--text); }
+
+/* ═══════════ INVOICE LIST ═══════════ */
+.invoice-list { margin-top: 20px; }
+.invoice-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.invoice-item:hover {
+  border-color: var(--verse);
+  transform: translateX(4px);
+}
+.invoice-item .left .inv-number {
+  font-weight: 600;
+  font-size: 14px;
+}
+.invoice-item .left .inv-client {
+  font-size: 12px;
+  color: var(--text2);
+}
+.invoice-item .right {
+  text-align: right;
+}
+.invoice-item .right .inv-amount {
+  font-weight: 700;
+  font-size: 14px;
+}
+.invoice-item .right .date {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+/* ═══════════ NOTIFICATION ═══════════ */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+  max-width: 360px;
+  backdrop-filter: blur(10px);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast .title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.toast .desc { font-size: 13px; color: var(--text2); }
+.toast.success .title { color: var(--green); }
+.toast.error .title { color: var(--red); }
+
+/* ═══════════ CONFETTI ═══════════ */
+@keyframes confetti-fall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  top: 0;
+  z-index: 9999;
+  animation: confetti-fall 3s ease-in forwards;
+  pointer-events: none;
+}
+.confetti-piece:nth-child(1) { left: 10%; background: #8b5cf6; animation-delay: 0s; }
+.confetti-piece:nth-child(2) { left: 20%; background: #6366f1; animation-delay: 0.2s; width: 8px; height: 8px; }
+.confetti-piece:nth-child(3) { left: 30%; background: #00d68f; animation-delay: 0.4s; }
+.confetti-piece:nth-child(4) { left: 40%; background: #ff9f43; animation-delay: 0.1s; width: 12px; height: 12px; }
+.confetti-piece:nth-child(5) { left: 50%; background: #ee5a24; animation-delay: 0.3s; }
+.confetti-piece:nth-child(6) { left: 60%; background: #a29bfe; animation-delay: 0.5s; width: 6px; height: 6px; }
+.confetti-piece:nth-child(7) { left: 70%; background: #8b5cf6; animation-delay: 0.15s; }
+.confetti-piece:nth-child(8) { left: 80%; background: #00d68f; animation-delay: 0.35s; width: 14px; height: 14px; border-radius: 50%; }
+.confetti-piece:nth-child(9) { left: 90%; background: #6366f1; animation-delay: 0.45s; }
+.confetti-piece:nth-child(10) { left: 15%; background: #ff9f43; animation-delay: 0.55s; }
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 900px) {
+  .container { grid-template-columns: 1fr; }
+  nav { padding: 12px 16px; }
+  .nav-links .nav-btn:not(.primary) { display: none; }
+  .hero { padding: 40px 16px 24px; }
+}
+
+/* ═══════════ LOADING SPINNER ═══════════ */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════ EMPTY STATE ═══════════ */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text2);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.empty-state p { font-size: 13px; }
+
+/* ═══════════ PAYMENT PROGRESS ═══════════ */
+.payment-progress {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--surface2);
+  border-radius: 12px;
+  text-align: center;
+}
+.payment-progress .timer {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent2);
+  font-variant-numeric: tabular-nums;
+}
+.payment-progress .label {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">⟠</div>
+    Bill<span>Verse</span>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn" onclick="showInvoiceList()">📋 History</button>
+    <button class="nav-btn primary" onclick="newInvoice()">+ New Invoice</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge"><span>⚡</span> Vibe Coding with Verse — July 2026</div>
+  <h1>Invoice in Crypto.<br>Get Paid Instantly.</h1>
+  <p>Create professional invoices, collect payments in VERSE, SOL, USDT, or BTC. Powered by Verse.</p>
+</div>
+
+<!-- CONTAINER -->
+<div class="container" id="app">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="panel">
+      <div class="panel-title"><span class="icon">📝</span> Create Invoice</div>
+
+      <div class="form-group">
+        <label>Bill To</label>
+        <input type="text" id="clientName" placeholder="Client name / company">
+      </div>
+      <div class="form-group">
+        <label>Client Email</label>
+        <input type="email" id="clientEmail" placeholder="client@example.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="number" id="amount" placeholder="0.00" step="any" min="0">
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <select id="currency">
+            <option value="VERSE">VERSE</option>
+            <option value="SOL">SOL</option>
+            <option value="USDT">USDT</option>
+            <option value="BTC">BTC</option>
+            <option value="POL">POL</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="desc" placeholder="What's this invoice for?"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="generateInvoice()" id="genBtn">
+        ✨ Generate Invoice
+      </button>
+    </div>
+
+    <!-- QR SECTION -->
+    <div class="panel qr-section hidden" id="qrSection">
+      <div class="panel-title"><span class="icon">📱</span> Pay with Crypto</div>
+      <div class="qr-wrapper" id="qrCode"></div>
+      <div class="qr-address" id="qrAddress"></div>
+      <div class="qr-instruction">
+        Send <strong id="qrAmount">0</strong> <strong id="qrCurrency">VERSE</strong> to the address above.<br>
+        Network: <strong id="qrNetwork">Verse</strong>
+      </div>
+
+      <!-- Payment Timer -->
+      <div class="payment-progress">
+        <div class="timer" id="paymentTimer">15:00</div>
+        <div class="label">⏳ Waiting for payment...</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-success" style="flex:1" onclick="simulatePayment()">
+          ✅ Mark as Paid
+        </button>
+        <button class="btn btn-secondary" style="flex:0 0 auto;width:auto;padding:14px 20px" onclick="downloadPDF()">
+          📄 PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+  <div>
+    <div class="panel" style="position:sticky;top:90px">
+      <div class="panel-title"><span class="icon">👁️</span> Invoice Preview</div>
+      <div id="invoicePreview">
+        <div class="empty-state" id="emptyPreview">
+          <div class="icon">📄</div>
+          <h3>No invoice yet</h3>
+          <p>Fill the form and click "Generate Invoice" to see your professional crypto invoice.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE LIST MODAL -->
+<div class="panel" id="historyPanel" style="display:none;position:fixed;top:80px;right:20px;width:380px;max-height:80vh;overflow:auto;z-index:200;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+  <div class="panel-title" style="justify-content:space-between">
+    <span><span class="icon">📋</span> Invoice History</span>
+    <button onclick="closeHistory()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px">✕</button>
+  </div>
+  <div class="invoice-list" id="invoiceList">
+    <div class="empty-state">
+      <div class="icon">📭</div>
+      <h3>No invoices yet</h3>
+      <p>Your generated invoices will appear here.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="title" id="toastTitle">Success</div>
+  <div class="desc" id="toastDesc">Invoice generated!</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  BillVerse — Crypto Invoice Generator
+// ══════════════════════════════════════════════
+
+const WALLETS = {
+  VERSE: '0xA5caa37e026b1fF7CF9AfDE474af926242De8a2a',
+  SOL: '0xA5caa37e026b1fF7CF9AfDE474af926242De8a2a',
+  USDT: '0xA5caa37e026b1fF7CF9AfDE474af926242De8a2a',
+  BTC: '0xA5caa37e026b1fF7CF9AfDE474af926242De8a2a',
+  POL: '0xA5caa37e026b1fF7CF9AfDE474af926242De8a2a'
+};
+
+const NETWORKS = {
+  VERSE: 'Verse Chain',
+  SOL: 'Solana',
+  USDT: 'ERC-20 / TRC-20',
+  BTC: 'Bitcoin',
+  POL: 'Polygon'
+};
+
+const RATES = {
+  VERSE: 0.87,  // 1 VERSE = $0.87 (example)
+  SOL: 142.50,
+  USDT: 1.00,
+  BTC: 63500,
+  POL: 0.38
+};
+
+let currentInvoice = null;
+let timerInterval = null;
+let invoices = JSON.parse(localStorage.getItem('billverse_invoices') || '[]');
+
+// ─── RENDER INVOICE ───
+function generateInvoice() {
+  const client = document.getElementById('clientName').value.trim();
+  const email = document.getElementById('clientEmail').value.trim();
+  const amount = parseFloat(document.getElementById('amount').value);
+  const currency = document.getElementById('currency').value;
+  const desc = document.getElementById('desc').value.trim();
+
+  if (!client || !amount || amount <= 0) {
+    showToast('⚠️ Missing fields', 'Client name and amount are required.', 'error');
+    return;
+  }
+
+  const invNum = 'BV-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2,4).toUpperCase();
+  const usdValue = (amount * (RATES[currency] || 1)).toFixed(2);
+
+  currentInvoice = {
+    number: invNum,
+    client, email, amount, currency, desc,
+    usdValue, status: 'pending',
+    createdAt: new Date().toISOString(),
+    paidAt: null
+  };
+
+  renderPreview(currentInvoice);
+  showQR(currentInvoice);
+  showToast('✅ Invoice Generated!', `#${invNum} — ${amount} ${currency}`, 'success');
+  confetti();
+}
+
+function renderPreview(inv) {
+  const el = document.getElementById('invoicePreview');
+  el.innerHTML = `
+    <div class="invoice-preview" id="pdfContent">
+      <div class="verse-watermark">⟠</div>
+      <div class="invoice-header">
+        <div class="invoice-brand">
+          <div class="invoice-brand-icon">⟠</div>
+          <div class="invoice-brand-text">Bill<span>Verse</span></div>
+        </div>
+        <div class="invoice-number-box">
+          <div class="label">Invoice</div>
+          <div class="number">#${inv.number}</div>
+          <div class="invoice-status status-${inv.status}">${inv.status.toUpperCase()}</div>
+        </div>
+      </div>
+      <div class="invoice-body">
+        <div class="invoice-row bill-to">
+          <div class="label" style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px">Bill To</div>
+          <div class="client-name">${inv.client}</div>
+          ${inv.email ? `<div class="client-detail">${inv.email}</div>` : ''}
+        </div>
+        ${inv.desc ? `<div class="invoice-row" style="margin-top:12px;color:#666;font-size:14px">${inv.desc}</div>` : ''}
+        <div class="invoice-amount-box">
+          <div class="amount-label">Amount Due</div>
+          <div class="amount-value">${inv.amount} ${inv.currency}</div>
+          <div class="amount-usd">≈ $${inv.usdValue} USD</div>
+        </div>
+      </div>
+      <div class="invoice-footer">
+        Generated by BillVerse · Powered by Verse Ecosystem · ${new Date(inv.createdAt).toLocaleDateString()}
+      </div>
+    </div>
+  `;
+  document.getElementById('emptyPreview').style.display = 'none';
+}
+
+function showQR(inv) {
+  const section = document.getElementById('qrSection');
+  section.classList.remove('hidden');
+  document.getElementById('qrAmount').textContent = inv.amount;
+  document.getElementById('qrCurrency').textContent = inv.currency;
+  document.getElementById('qrNetwork').textContent = NETWORKS[inv.currency] || inv.currency;
+
+  const addr = WALLETS[inv.currency] || '0x... Please configure wallet';
+  document.getElementById('qrAddress').textContent = addr;
+
+  // Generate QR
+  document.getElementById('qrCode').innerHTML = '';
+  new QRCode(document.getElementById('qrCode'), {
+    text: `${inv.currency}:${addr}?amount=${inv.amount}`,
+    width: 180,
+    height: 180,
+    colorDark: '#1a1a2e',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Start 15 min timer
+  startPaymentTimer(inv);
+}
+
+function startPaymentTimer(inv) {
+  if (timerInterval) clearInterval(timerInterval);
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+  const timerEl = document.getElementById('paymentTimer');
+
+  timerInterval = setInterval(() => {
+    const remain = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    const mins = Math.floor(remain / 60);
+    const secs = remain % 60;
+    timerEl.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    if (remain <= 0) {
+      clearInterval(timerInterval);
+      inv.status = 'expired';
+      renderPreview(inv);
+      showToast('⏰ Invoice Expired', `#${inv.number} — Payment time ran out`, 'error');
+    }
+  }, 1000);
+}
+
+// ─── SIMULATE PAYMENT ───
+function simulatePayment() {
+  if (!currentInvoice) return;
+  currentInvoice.status = 'paid';
+  currentInvoice.paidAt = new Date().toISOString();
+  if (timerInterval) clearInterval(timerInterval);
+
+  renderPreview(currentInvoice);
+  document.getElementById('paymentTimer').textContent = '✅ PAID';
+
+  // Save to history
+  invoices.unshift({...currentInvoice});
+  localStorage.setItem('billverse_invoices', JSON.stringify(invoices));
+
+  showToast('🎉 Payment Received!', `${currentInvoice.amount} ${currentInvoice.currency} — Invoice #${currentInvoice.number}`, 'success');
+  confetti();
+}
+
+// ─── PDF ───
+function downloadPDF() {
+  const el = document.getElementById('pdfContent');
+  if (!el) { showToast('⚠️ No invoice', 'Generate an invoice first.', 'error'); return; }
+  const opt = {
+    margin: [0.5, 0.5, 0.5, 0.5],
+    filename: `invoice-${currentInvoice.number}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(el).save();
+  showToast('📄 PDF Downloaded', `Invoice #${currentInvoice.number}`, 'success');
+}
+
+// ─── HISTORY ───
+function showInvoiceList() {
+  const panel = document.getElementById('historyPanel');
+  const list = document.getElementById('invoiceList');
+  panel.style.display = 'block';
+
+  if (invoices.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No invoices yet</h3><p>Your generated invoices will appear here.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = invoices.slice(0, 20).map(inv => `
+    <div class="invoice-item" onclick="viewInvoice('${inv.number}')">
+      <div class="left">
+        <div class="inv-number">#${inv.number}</div>
+        <div class="inv-client">${inv.client}</div>
+      </div>
+      <div class="right">
+        <div class="inv-amount">${inv.amount} ${inv.currency}</div>
+        <div class="date">${new Date(inv.createdAt).toLocaleDateString()} · <span style="color:${inv.status === 'paid' ? '#00d68f' : inv.status === 'expired' ? '#ee5a24' : '#ff9f43'}">${inv.status}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeHistory() { document.getElementById('historyPanel').style.display = 'none'; }
+
+function viewInvoice(num) {
+  const inv = invoices.find(i => i.number === num);
+  if (inv) {
+    currentInvoice = inv;
+    renderPreview(inv);
+    if (inv.status === 'pending') showQR(inv);
+    closeHistory();
+  }
+}
+
+function newInvoice() {
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientEmail').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('desc').value = '';
+  document.getElementById('qrSection').classList.add('hidden');
+  document.getElementById('invoicePreview').innerHTML = `
+    <div class="empty-state" id="emptyPreview">
+      <div class="icon">📄</div>
+      <h3>No invoice yet</h3>
+      <p>Fill the form and click "Generate Invoice" to see your professional crypto invoice.</p>
+    </div>
+  `;
+  currentInvoice = null;
+  if (timerInterval) clearInterval(timerInterval);
+}
+
+// ─── TOAST ───
+function showToast(title, desc, type = 'success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastDesc').textContent = desc;
+  t.className = `toast ${type}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ─── CONFETTI ───
+function confetti() {
+  for (let i = 0; i < 10; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.left = (5 + Math.random() * 85) + '%';
+    c.style.background = ['#8b5cf6','#6366f1','#00d68f','#ff9f43','#ee5a24','#a29bfe'][Math.floor(Math.random()*6)];
+    c.style.width = (6 + Math.random() * 8) + 'px';
+    c.style.height = c.style.width;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+}
+
+// ─── CLOSE HISTORY ON ESC ───
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory(); });
+</script>
+</body>
+</html>
